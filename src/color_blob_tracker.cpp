@@ -31,6 +31,9 @@ void ColorBlobTracker::imageCallback( const sensor_msgs::ImageConstPtr& msg) {
 
   cv::Rect bounding_rect = findBoundingRect( cv_ptr->image );
   rectangle( cv_ptr->image, bounding_rect, Scalar(0,255,0), 1, 8, 0);
+  circle( cv_ptr->image, Point2f(bounding_rect.x + bounding_rect.width/2, 
+                                 bounding_rect.y + bounding_rect.height/2),
+                         2, Scalar(0,255,0), 4 );
   cv::imshow(COLOR_BLOB_TRACKER_VIEW, cv_ptr->image );
   int key_value = cv::waitKey(30);
   if( key_value == (int)('q') ) {
