@@ -11,7 +11,8 @@ public:
   virtual ~ColorBlobTracker();
 
   void imageCallback( const sensor_msgs::ImageConstPtr& msg);
-  cv::Rect findBoundingRect( cv::Mat image );
+  cv::Rect findBoundingRect( cv::Mat& image, cv::Mat& hue_img );
+  int visualization( cv::Rect& bounding_rect, cv::Mat& img );
   ros::NodeHandle m_nh;
   image_transport::ImageTransport m_it;
   image_transport::Subscriber m_sub;

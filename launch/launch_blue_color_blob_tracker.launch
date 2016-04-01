@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch>
+   <include file="$(find colorblob_tracker)/launch/camera.launch"/>
+
+   <rosparam command="load" file="$(find colorblob_tracker)/launch/param/blue.yaml" />
+   <node pkg="colorblob_tracker" type="color_blob_tracker" name="blue_colorblob_tracker" />
+</launch>
