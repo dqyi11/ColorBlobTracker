@@ -1,0 +1,5 @@
+colob_blob_tracker:
+  lower_hue_lb: [68,23,155]
+  lower_hue_ub: [155,114,255]
+  upper_hue_lb: [68,23,155]
+  upper_hue_ub: [155,114,255]

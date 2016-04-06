@@ -99,7 +99,7 @@ ColorBlobTracker::ColorBlobTracker( ) : m_it( m_nh )  {
   /*
   cv::createTrackbar("Lower H lb", COLOR_BLOB_TRACKER_VIEW, &lower_hue_lb_h, max_h);
   cv::createTrackbar("Lower S lb", COLOR_BLOB_TRACKER_VIEW, &lower_hue_lb_s, max_s);
-  cv::createTrackbar("Lower V lb", COLOR_BLOB_TRACKER_VIEW, &lower_hue_lb_s, max_v);
+  cv::createTrackbar("Lower V lb", COLOR_BLOB_TRACKER_VIEW, &lower_hue_lb_v, max_v);
 
   cv::createTrackbar("Lower H ub", COLOR_BLOB_TRACKER_VIEW, &lower_hue_ub_h, max_h);
   cv::createTrackbar("Lower S ub", COLOR_BLOB_TRACKER_VIEW, &lower_hue_ub_s, max_s);
