@@ -181,6 +181,18 @@ int ColorBlobTracker::visualization( cv::Rect& bounding_rect, cv::Mat& img ) {
   circle( img, Point2f(bounding_rect.x + bounding_rect.width/2, 
                                  bounding_rect.y + bounding_rect.height/2),
                          2, Scalar(0,255,0), 4 );
+
+
+  for( unsigned int i=0; i<m_target_pos_list.size(); i++ ) {
+    pair< Point, bool > target = m_target_pos_list[i];
+    if( true == target.second ) {  
+      circle( img, Point2f( target.first.x, target.first.y ), 6, Scalar(255,0,0), 4 ); 
+    } 
+    else {
+      circle( img, Point2f( target.first.x, target.first.y ), 3, Scalar(255,0,0, 0.4), 4 ); 
+    }
+  }
+
   cv::imshow(COLOR_BLOB_TRACKER_VIEW, img );
   return cv::waitKey(30);
 }
@@ -209,12 +221,14 @@ void ColorBlobTracker::mouse_click(int event, int x, int y, int flags, void* par
   else if( EVENT_RBUTTONDOWN == event ) {
     if( p_object_tracker ) {
       p_object_tracker->m_target_pos_idx = 0;
-      pair< Point, bool> first_pos = p_object_tracker->m_target_pos_list[0];
-      Point pos = first_pos.first;
-      geometry_msgs::Pose2D target_pos_msg;
-      target_pos_msg.x = pos.x;
-      target_pos_msg.y = pos.y;
-      p_object_tracker->m_target_pos_pub.publish(target_pos_msg); 
+      if(p_object_tracker->m_target_pos_list.size()>0) {
+        pair< Point, bool> first_pos = p_object_tracker->m_target_pos_list[0];
+        Point pos = first_pos.first;
+        geometry_msgs::Pose2D target_pos_msg;
+        target_pos_msg.x = pos.x;
+        target_pos_msg.y = pos.y;
+        p_object_tracker->m_target_pos_pub.publish(target_pos_msg); 
+      }
     }
   } 
   else if( EVENT_MBUTTONDOWN == event ) {
