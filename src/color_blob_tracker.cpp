@@ -105,8 +105,9 @@ ColorBlobTracker::ColorBlobTracker( ) : m_it( m_nh )  {
     }
   }
 
-  cv::setMouseCallback(COLOR_BLOB_TRACKER_VIEW, mouse_click, this );
+  
   cv::namedWindow(COLOR_BLOB_TRACKER_VIEW);
+  cv::setMouseCallback(COLOR_BLOB_TRACKER_VIEW, mouse_click, this );
   /*
   cv::createTrackbar("Lower H lb", COLOR_BLOB_TRACKER_VIEW, &lower_hue_lb_h, max_h);
   cv::createTrackbar("Lower S lb", COLOR_BLOB_TRACKER_VIEW, &lower_hue_lb_s, max_s);
