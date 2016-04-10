@@ -52,6 +52,24 @@ void ColorBlobTracker::image_callback( const sensor_msgs::ImageConstPtr& msg) {
   cv::Mat hue_image;
   cv::Rect bounding_rect = find_bounding_rect( cv_ptr->image, hue_image );
 
+  if( m_target_pos_list.size() > 0 && m_target_pos_idx >= 0 ) {
+    pair< Point, bool> current_target = m_target_pos_list[m_target_pos_idx];
+    int current_x = bounding_rect.x + bounding_rect.width/2;                                 
+    int current_y = bounding_rect.y + bounding_rect.height/2;
+    if( is_current_target_reached( current_x, current_y, current_target.first.x, current_target.first.y ) ) {
+      m_target_pos_list[m_target_pos_idx].second = false;
+      if( m_target_pos_idx < m_target_pos_list.size()-1 ) {
+        m_target_pos_idx ++;
+        Point new_target_pos = m_target_pos_list[m_target_pos_idx].first;
+        geometry_msgs::Pose2D new_target_pos_msg;
+        new_target_pos_msg.x = new_target_pos.x;
+        new_target_pos_msg.y = new_target_pos.y;
+        m_target_pos_pub.publish(new_target_pos_msg); 
+         
+      }
+    }
+  }
+
   geometry_msgs::Pose2D tracked_pos_msg;
   tracked_pos_msg.x = bounding_rect.x + bounding_rect.width/2;
   tracked_pos_msg.y = bounding_rect.y + bounding_rect.height/2; 
@@ -179,17 +197,17 @@ cv::Rect ColorBlobTracker::find_bounding_rect( cv::Mat& image, cv::Mat& hue_imag
 int ColorBlobTracker::visualization( cv::Rect& bounding_rect, cv::Mat& img ) {
   rectangle( img, bounding_rect, Scalar(0,255,0), 1, 8, 0);
   circle( img, Point2f(bounding_rect.x + bounding_rect.width/2, 
-                                 bounding_rect.y + bounding_rect.height/2),
+                       bounding_rect.y + bounding_rect.height/2),
                          2, Scalar(0,255,0), 4 );
 
 
   for( unsigned int i=0; i<m_target_pos_list.size(); i++ ) {
     pair< Point, bool > target = m_target_pos_list[i];
     if( true == target.second ) {  
-      circle( img, Point2f( target.first.x, target.first.y ), 6, Scalar(255,0,0), 4 ); 
+      circle( img, Point2f( target.first.x, target.first.y ), REACH_THRESHOLD, Scalar(255,0,0), 2 ); 
     } 
     else {
-      circle( img, Point2f( target.first.x, target.first.y ), 3, Scalar(255,0,0, 0.4), 4 ); 
+      circle( img, Point2f( target.first.x, target.first.y ), 2, Scalar(255,0,0, 0.4), 2 ); 
     }
   }
 
