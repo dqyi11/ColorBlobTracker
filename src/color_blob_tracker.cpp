@@ -67,6 +67,12 @@ void ColorBlobTracker::image_callback( const sensor_msgs::ImageConstPtr& msg) {
         m_target_pos_pub.publish(new_target_pos_msg); 
          
       }
+      else {
+        geometry_msgs::Pose2D new_target_pos_msg;
+        new_target_pos_msg.x = -1;
+        new_target_pos_msg.y = -1;
+        m_target_pos_pub.publish(new_target_pos_msg); 
+      }
     }
   }
 
