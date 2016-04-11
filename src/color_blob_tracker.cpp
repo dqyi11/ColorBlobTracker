@@ -2,11 +2,14 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/image_encodings.h>
+#include <geometry_msgs/Pose2D.h>
 //#include <ros/param.h>
 
 #include "color_blob_tracker/color_blob_tracker.h"
 
 #define COLOR_BLOB_TRACKER_VIEW "Color Blob Tracker"
+#define REACH_THRESHOLD 30
+
 
 using namespace std;
 using namespace cv;
@@ -36,7 +39,7 @@ int upper_hue_ub_v = 255;
 int morph_size = 3;
 cv::Mat element = cv::getStructuringElement( cv::MORPH_ELLIPSE, cv::Size( 4*morph_size + 1, 2*morph_size+1 ), cv::Point( morph_size, morph_size ) ); 
 
-void ColorBlobTracker::imageCallback( const sensor_msgs::ImageConstPtr& msg) {
+void ColorBlobTracker::image_callback( const sensor_msgs::ImageConstPtr& msg) {
   cv_bridge::CvImagePtr cv_ptr;
   try {
     cv_ptr = cv_bridge::toCvCopy( msg, "bgr8" ); 
@@ -47,7 +50,31 @@ void ColorBlobTracker::imageCallback( const sensor_msgs::ImageConstPtr& msg) {
   }
 
   cv::Mat hue_image;
-  cv::Rect bounding_rect = findBoundingRect( cv_ptr->image, hue_image );
+  cv::Rect bounding_rect = find_bounding_rect( cv_ptr->image, hue_image );
+
+  if( m_target_pos_list.size() > 0 && m_target_pos_idx >= 0 ) {
+    pair< Point, bool> current_target = m_target_pos_list[m_target_pos_idx];
+    int current_x = bounding_rect.x + bounding_rect.width/2;                                 
+    int current_y = bounding_rect.y + bounding_rect.height/2;
+    if( is_current_target_reached( current_x, current_y, current_target.first.x, current_target.first.y ) ) {
+      m_target_pos_list[m_target_pos_idx].second = false;
+      if( m_target_pos_idx < m_target_pos_list.size()-1 ) {
+        m_target_pos_idx ++;
+        Point new_target_pos = m_target_pos_list[m_target_pos_idx].first;
+        geometry_msgs::Pose2D new_target_pos_msg;
+        new_target_pos_msg.x = new_target_pos.x;
+        new_target_pos_msg.y = new_target_pos.y;
+        m_target_pos_pub.publish(new_target_pos_msg); 
+         
+      }
+    }
+  }
+
+  geometry_msgs::Pose2D tracked_pos_msg;
+  tracked_pos_msg.x = bounding_rect.x + bounding_rect.width/2;
+  tracked_pos_msg.y = bounding_rect.y + bounding_rect.height/2; 
+  m_tracked_pos_pub.publish(tracked_pos_msg); 
+
   //int key_value = visualization( cv_ptr->image );
   int key_value = visualization( bounding_rect, cv_ptr->image );
   if( key_value == (int)('q') ) {
@@ -57,7 +84,8 @@ void ColorBlobTracker::imageCallback( const sensor_msgs::ImageConstPtr& msg) {
 
 ColorBlobTracker::ColorBlobTracker( ) : m_it( m_nh )  {
   
-  m_sub = m_it.subscribe("/usb_cam/image_raw", 1, &ColorBlobTracker::imageCallback, this);
+  m_sub = m_it.subscribe("/usb_cam/image_raw", 1, &ColorBlobTracker::image_callback, this);
+  m_target_pos_idx = 0;
 
   vector<int> l_hue_lb;
   if( m_nh.getParam("/colob_blob_tracker/lower_hue_lb", l_hue_lb) ) {
@@ -95,7 +123,9 @@ ColorBlobTracker::ColorBlobTracker( ) : m_it( m_nh )  {
     }
   }
 
+  
   cv::namedWindow(COLOR_BLOB_TRACKER_VIEW);
+  cv::setMouseCallback(COLOR_BLOB_TRACKER_VIEW, mouse_click, this );
   /*
   cv::createTrackbar("Lower H lb", COLOR_BLOB_TRACKER_VIEW, &lower_hue_lb_h, max_h);
   cv::createTrackbar("Lower S lb", COLOR_BLOB_TRACKER_VIEW, &lower_hue_lb_s, max_s);
@@ -113,6 +143,10 @@ ColorBlobTracker::ColorBlobTracker( ) : m_it( m_nh )  {
   cv::createTrackbar("Upper S ub", COLOR_BLOB_TRACKER_VIEW, &upper_hue_ub_s, max_s);
   cv::createTrackbar("Upper V ub", COLOR_BLOB_TRACKER_VIEW, &upper_hue_ub_v, max_v);
   */
+
+  m_tracked_pos_pub = m_nh.advertise<geometry_msgs::Pose2D>("tracked_pos", 10);
+  m_target_pos_pub = m_nh.advertise<geometry_msgs::Pose2D>("target_pos", 10); 
+
   cv::startWindowThread();
 }
 
@@ -120,7 +154,7 @@ ColorBlobTracker::~ColorBlobTracker() {
   cv::destroyWindow( COLOR_BLOB_TRACKER_VIEW );
 }
  
-cv::Rect ColorBlobTracker::findBoundingRect( cv::Mat& image, cv::Mat& hue_image ) {
+cv::Rect ColorBlobTracker::find_bounding_rect( cv::Mat& image, cv::Mat& hue_image ) {
   cv::Rect bounding_rect;
   cv::Mat hsv_image;
   cv::Mat lower_hue_range;
@@ -163,8 +197,61 @@ cv::Rect ColorBlobTracker::findBoundingRect( cv::Mat& image, cv::Mat& hue_image 
 int ColorBlobTracker::visualization( cv::Rect& bounding_rect, cv::Mat& img ) {
   rectangle( img, bounding_rect, Scalar(0,255,0), 1, 8, 0);
   circle( img, Point2f(bounding_rect.x + bounding_rect.width/2, 
-                                 bounding_rect.y + bounding_rect.height/2),
+                       bounding_rect.y + bounding_rect.height/2),
                          2, Scalar(0,255,0), 4 );
+
+
+  for( unsigned int i=0; i<m_target_pos_list.size(); i++ ) {
+    pair< Point, bool > target = m_target_pos_list[i];
+    if( true == target.second ) {  
+      circle( img, Point2f( target.first.x, target.first.y ), REACH_THRESHOLD, Scalar(255,0,0), 2 ); 
+    } 
+    else {
+      circle( img, Point2f( target.first.x, target.first.y ), 2, Scalar(255,0,0, 0.4), 2 ); 
+    }
+  }
+
   cv::imshow(COLOR_BLOB_TRACKER_VIEW, img );
   return cv::waitKey(30);
+}
+
+bool ColorBlobTracker::is_current_target_reached( int x, int y, int target_x, int target_y ) {
+  double distance = 0.0;
+  distance = sqrt( (x-target_x)*(x-target_x) + (y-target_y)*(y-target_y) );
+  if( distance < REACH_THRESHOLD ) {
+    return true;
+  }
+  return false;
+}  
+
+void ColorBlobTracker::mouse_click(int event, int x, int y, int flags, void* param) {
+
+  ColorBlobTracker* p_object_tracker = static_cast<ColorBlobTracker*>( param );
+  if( EVENT_LBUTTONDOWN == event ) {
+   
+    if( p_object_tracker ) {
+      Point pos;
+      pos.x = x;
+      pos.y = y;
+      p_object_tracker->m_target_pos_list.push_back( make_pair( pos, true ) );
+    }
+  }
+  else if( EVENT_RBUTTONDOWN == event ) {
+    if( p_object_tracker ) {
+      p_object_tracker->m_target_pos_idx = 0;
+      if(p_object_tracker->m_target_pos_list.size()>0) {
+        pair< Point, bool> first_pos = p_object_tracker->m_target_pos_list[0];
+        Point pos = first_pos.first;
+        geometry_msgs::Pose2D target_pos_msg;
+        target_pos_msg.x = pos.x;
+        target_pos_msg.y = pos.y;
+        p_object_tracker->m_target_pos_pub.publish(target_pos_msg); 
+      }
+    }
+  } 
+  else if( EVENT_MBUTTONDOWN == event ) {
+    if( p_object_tracker ) {
+      p_object_tracker->m_target_pos_list.clear();
+    }
+  }
 }
