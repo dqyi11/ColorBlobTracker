@@ -77,8 +77,14 @@ void ColorBlobTracker::image_callback( const sensor_msgs::ImageConstPtr& msg) {
   }
 
   geometry_msgs::Pose2D tracked_pos_msg;
-  tracked_pos_msg.x = bounding_rect.x + bounding_rect.width/2;
-  tracked_pos_msg.y = bounding_rect.y + bounding_rect.height/2; 
+  if( bounding_rect.width == 0 || bounding_rect.height == 0 ) {
+    tracked_pos_msg.x = -1;
+    tracked_pos_msg.y = -1;
+  }
+  else {
+    tracked_pos_msg.x = bounding_rect.x + bounding_rect.width/2;
+    tracked_pos_msg.y = bounding_rect.y + bounding_rect.height/2;
+  } 
   m_tracked_pos_pub.publish(tracked_pos_msg); 
 
   //int key_value = visualization( cv_ptr->image );
