@@ -36,4 +36,4 @@ add_executable(color_blob_tracker src/color_blob_tracker.cpp
 target_link_libraries(color_blob_tracker ${catkin_LIBRARIES} 
                                          ${OpenCV_LIBRARIES}
                      )
-
+add_dependencies(color_blob_tracker colorblob_tracker_generate_messages_cpp)
